@@ -1,12 +1,14 @@
 const http = require('http');
 const https = require('https');
+const fs = require('fs');
+const path = require('path');
 
 const API_KEY = process.env.GEMINI_API_KEY;
+const CLASS_CODE = process.env.CLASS_CODE || 'manabi2024';
 const PORT = process.env.PORT || 3000;
 const GEMINI_MODEL = 'gemini-2.5-flash';
 
 const server = http.createServer((req, res) => {
-  // CORS設定
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -17,41 +19,56 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // トップページ：HTMLファイルを返す
   if (req.method === 'GET' && req.url === '/') {
-    const fs = require('fs');
-    const path = require('path');
     const filePath = path.join(__dirname, 'index.html');
     fs.readFile(filePath, 'utf8', (err, data) => {
-      if (err) {
-        res.writeHead(500);
-        res.end('Error loading page');
-        return;
-      }
+      if (err) { res.writeHead(500); res.end('Error'); return; }
       res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
       res.end(data);
     });
     return;
   }
 
-  // AIフィードバックAPI
+  if (req.method === 'POST' && req.url === '/api/verify') {
+    let body = '';
+    req.on('data', chunk => { body += chunk.toString(); });
+    req.on('end', () => {
+      try {
+        const { code } = JSON.parse(body);
+        if (code === CLASS_CODE) {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ ok: true }));
+        } else {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ ok: false }));
+        }
+      } catch(e) {
+        res.writeHead(400); res.end('Bad request');
+      }
+    });
+    return;
+  }
+
   if (req.method === 'POST' && req.url === '/api/feedback') {
     let body = '';
     req.on('data', chunk => { body += chunk.toString(); });
     req.on('end', () => {
       try {
-        const { prompt } = JSON.parse(body);
+        const { prompt, code } = JSON.parse(body);
+        if (code !== CLASS_CODE) {
+          res.writeHead(403, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'クラスコードが正しくありません' }));
+          return;
+        }
         if (!prompt) {
           res.writeHead(400, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ error: 'promptが必要です' }));
           return;
         }
-
         const postData = JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
           generationConfig: { temperature: 0.3 }
         });
-
         const options = {
           hostname: 'generativelanguage.googleapis.com',
           path: `/v1beta/models/${GEMINI_MODEL}:generateContent?key=${API_KEY}`,
@@ -61,7 +78,6 @@ const server = http.createServer((req, res) => {
             'Content-Length': Buffer.byteLength(postData)
           }
         };
-
         const apiReq = https.request(options, (apiRes) => {
           let data = '';
           apiRes.on('data', chunk => { data += chunk; });
@@ -70,15 +86,12 @@ const server = http.createServer((req, res) => {
             res.end(data);
           });
         });
-
         apiReq.on('error', (e) => {
           res.writeHead(500, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ error: e.message }));
         });
-
         apiReq.write(postData);
         apiReq.end();
-
       } catch (e) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: '不正なリクエストです' }));
