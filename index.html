@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>教科横断 学習マップ</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#F7F6F2;--bg2:#EEECEA;--bg3:#E4E2DE;
+    --border:#D8D6D0;--border2:#C8C6C0;
+    --text:#1A1918;--text2:#5A5956;--text3:#8A8886;
+    --white:#FFFFFF;
+    --radius:10px;--radius-sm:6px;
+  }
+  body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px}
+  .app{display:grid;grid-template-rows:auto 1fr;height:100vh;max-height:100vh;overflow:hidden}
+  .topbar{background:var(--white);border-bottom:1px solid var(--border);padding:.6rem 1rem;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .app-title{font-size:15px;font-weight:700;flex:1;color:var(--text)}
+  .tab{font-size:12px;padding:5px 12px;border:1px solid var(--border);border-radius:20px;background:transparent;cursor:pointer;color:var(--text2);font-family:inherit;transition:all .15s}
+  .tab:hover{background:var(--bg2)}
+  .tab.active{background:var(--text);color:var(--white);border-color:var(--text)}
+  .body{display:grid;grid-template-columns:1fr 300px;overflow:hidden}
+  .map-col{display:flex;flex-direction:column;overflow:hidden;background:var(--white)}
+  .map-wrap{flex:1;padding:.75rem;overflow:hidden}
+  .map-hint{font-size:11px;color:var(--text3);text-align:center;padding:.3rem;border-top:1px solid var(--border)}
+  .side{overflow-y:auto;background:var(--bg);border-left:1px solid var(--border)}
+  .panel{display:none;padding:.875rem}
+  .panel.active{display:block}
+  .flabel{font-size:11px;color:var(--text2);display:block;margin-bottom:4px;margin-top:.6rem;font-weight:500}
+  .flabel:first-child{margin-top:0}
+  textarea,select,input[type=text]{
+    width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);
+    font-size:12px;background:var(--white);color:var(--text);font-family:inherit;outline:none;transition:border .15s
+  }
+  textarea:focus,select:focus,input:focus{border-color:var(--text2)}
+  textarea{resize:vertical;line-height:1.6}
+  .btn-primary{width:100%;padding:9px;border:none;border-radius:var(--radius-sm);background:var(--text);color:var(--white);font-size:13px;font-weight:700;cursor:pointer;margin-top:.6rem;font-family:inherit;transition:opacity .15s}
+  .btn-primary:hover{opacity:.8}
+  .btn-primary:disabled{opacity:.35;cursor:not-allowed}
+  .btn-sm{font-size:11px;padding:3px 10px;border:1px solid var(--border);border-radius:20px;background:var(--white);cursor:pointer;color:var(--text2);font-family:inherit;transition:all .15s}
+  .btn-sm:hover{background:var(--bg2)}
+  .btn-sm.accept{background:var(--text);color:var(--white);border-color:var(--text)}
+  .card{border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:.6rem;background:var(--white)}
+  .card-head{padding:.6rem .875rem;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border)}
+  .card-head h3{font-size:12px;font-weight:700;flex:1}
+  .card-body{padding:.7rem .875rem;font-size:12px;line-height:1.7;color:var(--text2)}
+  .badge{font-size:10px;padding:3px 8px;border-radius:20px;font-weight:700;white-space:nowrap}
+  .dots{display:inline-flex;gap:4px;align-items:center}
+  .dots span{width:5px;height:5px;border-radius:50%;background:var(--text3);animation:dt 1.2s infinite}
+  .dots span:nth-child(2){animation-delay:.2s}
+  .dots span:nth-child(3){animation-delay:.4s}
+  @keyframes dt{0%,80%,100%{opacity:.2}40%{opacity:1}}
+  .ring-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:.5rem 0}
+  .ring-item{text-align:center;border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 4px;background:var(--bg)}
+  .ring-label{font-size:9px;color:var(--text2);line-height:1.3;margin-bottom:4px}
+  .ring-wrap{position:relative;width:48px;height:48px;margin:0 auto 3px}
+  .ring-wrap svg{width:48px;height:48px}
+  .ring-num{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:13px;font-weight:700}
+  .reach-bar-wrap{margin:.4rem 0}
+  .reach-bar-label{display:flex;justify-content:space-between;font-size:10px;color:var(--text2);margin-bottom:3px}
+  .reach-bar-track{height:7px;background:var(--bg2);border-radius:4px;overflow:hidden}
+  .reach-bar-fill{height:100%;border-radius:4px;transition:width .8s ease}
+  .reach-milestone{display:flex;align-items:flex-start;gap:8px;padding:.4rem 0;border-bottom:1px solid var(--border);font-size:11px}
+  .reach-milestone:last-child{border-bottom:none}
+  .ms-icon{font-size:14px;flex-shrink:0;margin-top:1px}
+  .ms-title{font-weight:500;color:var(--text)}
+  .conn-proposal{border:1px solid var(--border);border-radius:var(--radius-sm);padding:.6rem;margin-bottom:6px;background:var(--white)}
+  .conn-row{display:flex;align-items:center;gap:6px;margin-bottom:4px}
+  .conn-reason{font-size:11px;color:var(--text2);margin-bottom:5px;line-height:1.5}
+  .conn-actions{display:flex;gap:4px}
+  .my-conn{display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid var(--border);font-size:11px}
+  .my-conn:last-child{border-bottom:none}
+  .cdot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+  .src-badge{font-size:9px;padding:2px 5px;border-radius:20px;font-weight:500}
+  .history-item{display:flex;align-items:center;gap:8px;padding:.5rem 0;border-bottom:1px solid var(--border);cursor:pointer}
+  .history-item:last-child{border-bottom:none}
+  .history-item:hover .hi-title{text-decoration:underline}
+  .hi-icon{font-size:16px;width:22px;text-align:center;flex-shrink:0}
+  .hi-body{flex:1;min-width:0}
+  .hi-title{font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .hi-meta{font-size:10px;color:var(--text3)}
+  .hi-score{font-size:12px;font-weight:700}
+  .section-title{font-size:11px;font-weight:700;color:var(--text);margin:.7rem 0 .35rem;text-transform:uppercase;letter-spacing:.04em}
+  .manual-grid{display:grid;grid-template-columns:1fr auto 1fr;gap:4px;align-items:center;margin-bottom:5px}
+  .manual-grid span{text-align:center;color:var(--text3);font-size:12px}
+  .error-box{background:#FFF5F5;border:1px solid #FFCCCC;border-radius:var(--radius-sm);padding:.6rem .875rem;font-size:11px;color:#8B1A1A;margin-bottom:.5rem;line-height:1.6}
+  .info-box{background:#F0F4FF;border:1px solid #C0CFFF;border-radius:var(--radius-sm);padding:.6rem .875rem;font-size:11px;color:#1A2F6B;margin-bottom:.5rem;line-height:1.6}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <div class="app-title">📚 教科横断 学習マップ</div>
+    <button class="tab active" onclick="switchTab('map',this)">マップ</button>
+    <button class="tab" onclick="switchTab('submit',this)">学習を記録</button>
+    <button class="tab" onclick="switchTab('feedback',this)">フィードバック</button>
+    <button class="tab" onclick="switchTab('reach',this)">到達度</button>
+    <button class="tab" onclick="switchTab('history',this)">記録一覧</button>
+    <button class="tab" onclick="switchTab('conns',this)">つながり</button>
+  </div>
+  <div class="body">
+    <div class="map-col">
+      <div class="map-wrap">
+        <svg id="map-svg" viewBox="0 0 500 420" style="width:100%;height:100%;max-height:calc(100vh - 120px)"></svg>
+      </div>
+      <div class="map-hint" id="map-hint">教科をクリックするとつながりが浮かび上がります</div>
+    </div>
+    <div class="side">
+      <div class="panel active" id="panel-map">
+        <div id="side-map"><p style="font-size:12px;color:var(--text3);padding:.5rem 0">教科をクリックして確認しよう</p></div>
+      </div>
+      <div class="panel" id="panel-submit">
+        <div class="info-box">💡 学習したことを書いて送ると、AIがフィードバックをくれるよ！</div>
+        <label class="flabel">教科</label>
+        <select id="sel-subj"></select>
+        <label class="flabel">単元・テーマ</label>
+        <input type="text" id="inp-unit" placeholder="例：川の学習、かけ算のしくみ">
+        <label class="flabel">学習したこと・気づき</label>
+        <textarea id="inp-body" style="min-height:100px" placeholder="今日学んだこと、疑問に思ったこと、気づいたことを書こう！"></textarea>
+        <button class="btn-primary" id="submit-btn" onclick="doSubmit()">AIにフィードバックをもらう ↗</button>
+      </div>
+      <div class="panel" id="panel-feedback">
+        <div id="fb-wrap"><p style="font-size:12px;color:var(--text3)">「学習を記録」タブから送るとここにフィードバックが届きます</p></div>
+      </div>
+      <div class="panel" id="panel-reach">
+        <div id="reach-wrap"><p style="font-size:12px;color:var(--text3)">記録が増えると到達度が表示されます</p></div>
+      </div>
+      <div class="panel" id="panel-history">
+        <div id="history-wrap"><p style="font-size:12px;color:var(--text3)">まだ記録がありません</p></div>
+      </div>
+      <div class="panel" id="panel-conns">
+        <p class="section-title">AIが提案したつながり</p>
+        <div id="conn-proposals-wrap"><p style="font-size:11px;color:var(--text3)">承認待ちの提案はありません</p></div>
+        <p class="section-title" style="margin-top:.875rem">マップのつながり一覧</p>
+        <div id="conn-list-wrap"><p style="font-size:11px;color:var(--text3)">まだありません</p></div>
+        <p class="section-title" style="margin-top:.875rem">自分でつながりを追加</p>
+        <div class="manual-grid">
+          <select id="man-a" style="font-size:11px"></select>
+          <span>↔</span>
+          <select id="man-b" style="font-size:11px"></select>
+        </div>
+        <input type="text" id="man-lbl" placeholder="つながりの理由（10文字以内）" style="font-size:11px;margin-bottom:5px">
+        <button class="btn-sm" style="width:100%;padding:5px" onclick="addManual()">追加する</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const S=[
+  {id:'kokugo',name:'国語',color:'#1D9E75',light:'#E8F7F2',dark:'#085041',icon:'📖'},
+  {id:'sansu',name:'算数',color:'#378ADD',light:'#E8F1FB',dark:'#0C447C',icon:'📐'},
+  {id:'rika',name:'理科',color:'#5A9020',light:'#EBF4DE',dark:'#27500A',icon:'🔬'},
+  {id:'shakai',name:'社会',color:'#D85A30',light:'#FAECE7',dark:'#712B13',icon:'🌏'},
+  {id:'eigo',name:'外国語',color:'#7F77DD',light:'#EEEDFE',dark:'#3C3489',icon:'🗣'},
+  {id:'zuko',name:'図工',color:'#D4537E',light:'#FBEAF0',dark:'#72243E',icon:'🎨'},
+  {id:'ongaku',name:'音楽',color:'#BA7517',light:'#FBF0DA',dark:'#633806',icon:'🎵'},
+  {id:'taiiku',name:'体育',color:'#E24B4A',light:'#FCEBEB',dark:'#791F1F',icon:'⚽'},
+  {id:'seikatsu',name:'生活',color:'#0F8A6A',light:'#E4F5F0',dark:'#04342C',icon:'🌱'},
+  {id:'sogo',name:'総合',color:'#888780',light:'#F1EFE8',dark:'#3A3A38',icon:'🔗'},
+  {id:'other',name:'その他',color:'#5F5E5A',light:'#F1EFE8',dark:'#2C2C2A',icon:'✨'},
+];
+const POS=[
+  {id:'kokugo',x:90,y:85},{id:'sansu',x:250,y:55},{id:'rika',x:410,y:85},
+  {id:'shakai',x:455,y:225},{id:'eigo',x:45,y:225},{id:'zuko',x:90,y:360},
+  {id:'ongaku',x:245,y:390},{id:'taiiku',x:405,y:358},{id:'seikatsu',x:340,y:160},
+  {id:'sogo',x:245,y:235},{id:'other',x:148,y:215},
+];
+const VIEWPTS=['知識・技能','思考・判断・表現','主体的な学び','言語活動','問題解決','表現・創造'];
+const MILESTONES={
+  kokugo:['文章の意味を読み取れる','自分の考えを文章で表せる','目的に合わせた書き方ができる','読み手を意識した表現ができる'],
+  sansu:['計算の手順を理解できる','図や表で表せる','文章題を式にできる','複数の解き方を説明できる'],
+  rika:['観察・実験の結果を記録できる','結果から考察できる','自分で予想を立てられる','他の現象と結びつけて考えられる'],
+  shakai:['地域の特徴を説明できる','資料を読み取れる','調べたことをまとめられる','社会のしくみと自分のくらしを結びつけられる'],
+  eigo:['簡単な表現で伝えられる','聞いて大意がわかる','自分のことを英語で話せる','場面に合った表現が選べる'],
+  zuko:['材料や道具を使える','自分のイメージを形にできる','工夫して表現できる','作品について説明できる'],
+  ongaku:['正しいリズムで演奏できる','曲の気分を感じ取れる','声・体を使って表現できる','音楽の構造を理解できる'],
+  taiiku:['動きの基本ができる','ルールを守って参加できる','体の動かし方を工夫できる','チームで協力して動ける'],
+  seikatsu:['身近な生き物・もの・場所に気づける','観察して気づきを伝えられる','自分の生活を振り返れる','生活を工夫・改善できる'],
+  sogo:['テーマを決めて調べられる','情報を整理してまとめられる','発表・表現できる','課題に対して自分の考えを持てる'],
+  other:['自分の学びを振り返れる','他の教科とつなげて考えられる','疑問を持って取り組める','学んだことを生活に活かせる'],
+};
+
+let conns=[],proposals=[],works=[],activeSubj=null,currentWork=null;
+const sb=id=>S.find(x=>x.id===id);
+const ps=id=>POS.find(x=>x.id===id);
+
+function initSelects(){
+  ['sel-subj','man-a','man-b'].forEach(id=>{
+    const el=document.getElementById(id);if(!el)return;
+    el.innerHTML='';
+    S.forEach(s=>{const o=document.createElement('option');o.value=s.id;o.textContent=s.icon+' '+s.name;el.appendChild(o);});
+  });
+  const mb=document.getElementById('man-b');if(mb)mb.value='sansu';
+}
+
+function switchTab(tab,btn){
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('panel-'+tab).classList.add('active');
+  if(tab==='reach')renderReach();
+  if(tab==='history')renderHistory();
+  if(tab==='conns')renderConns();
+}
+
+function drawMap(){
+  const svg=document.getElementById('map-svg');svg.innerHTML='';
+  conns.forEach(c=>{
+    const pa=ps(c.a),pb=ps(c.b);if(!pa||!pb)return;
+    const hl=activeSubj===null||c.a===activeSubj||c.b===activeSubj;
+    const col=hl&&activeSubj?(sb(c.a===activeSubj?c.a:c.b)?.color||'#888'):'#D0CEC8';
+    const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+    line.setAttribute('x1',pa.x);line.setAttribute('y1',pa.y);line.setAttribute('x2',pb.x);line.setAttribute('y2',pb.y);
+    line.setAttribute('stroke',col);line.setAttribute('stroke-width',hl?2.5:1.5);
+    line.setAttribute('opacity',hl?1:0.18);line.setAttribute('stroke-dasharray',c.source==='manual'?'5 3':'none');
+    svg.appendChild(line);
+    if(hl&&activeSubj){
+      const mx=(pa.x+pb.x)/2,my=(pa.y+pb.y)/2;
+      const tw=Math.max(c.label.length*5.5+12,36);
+      const bg=document.createElementNS('http://www.w3.org/2000/svg','rect');
+      bg.setAttribute('x',mx-tw/2);bg.setAttribute('y',my-13);bg.setAttribute('width',tw);bg.setAttribute('height',14);
+      bg.setAttribute('rx',5);bg.setAttribute('fill',c.source==='ai'?'#EEEDFE':'#E8F7F2');svg.appendChild(bg);
+      const t=document.createElementNS('http://www.w3.org/2000/svg','text');
+      t.setAttribute('x',mx);t.setAttribute('y',my-2);t.setAttribute('text-anchor','middle');
+      t.setAttribute('font-size','8.5');t.setAttribute('fill',c.source==='ai'?'#3C3489':'#085041');t.textContent=c.label;svg.appendChild(t);
+    }
+  });
+  S.forEach(s=>{
+    const pos=ps(s.id);if(!pos)return;
+    const myC=conns.filter(c=>c.a===s.id||c.b===s.id);
+    const myW=works.filter(w=>w.subject===s.id);
+    const hl=activeSubj===null||s.id===activeSubj||conns.some(c=>(c.a===activeSubj&&c.b===s.id)||(c.b===activeSubj&&c.a===s.id));
+    const isActive=s.id===activeSubj;
+    const R=isActive?40:myC.length>0||myW.length>0?33:27;
+    const g=document.createElementNS('http://www.w3.org/2000/svg','g');
+    g.style.cursor='pointer';g.setAttribute('opacity',hl?1:0.15);g.onclick=()=>clickSubj(s.id);
+    if(myW.length>0){
+      const avg=Math.round(myW.reduce((a,w)=>a+(w.avgScore||0),0)/myW.length);
+      const r2=R+7;const circ=2*Math.PI*r2;
+      const arc=document.createElementNS('http://www.w3.org/2000/svg','circle');
+      arc.setAttribute('cx',pos.x);arc.setAttribute('cy',pos.y);arc.setAttribute('r',r2);
+      arc.setAttribute('fill','none');arc.setAttribute('stroke',s.color);arc.setAttribute('stroke-width','4');
+      arc.setAttribute('stroke-dasharray',`${Math.round(avg/100*circ*10)/10} ${Math.round(circ*10)/10}`);
+      arc.setAttribute('stroke-linecap','round');arc.setAttribute('transform',`rotate(-90 ${pos.x} ${pos.y})`);
+      arc.setAttribute('opacity','0.4');g.appendChild(arc);
+    }
+    const ci=document.createElementNS('http://www.w3.org/2000/svg','circle');
+    ci.setAttribute('cx',pos.x);ci.setAttribute('cy',pos.y);ci.setAttribute('r',R);
+    ci.setAttribute('fill',hl?s.light:'#F4F3EF');ci.setAttribute('stroke',s.color);
+    ci.setAttribute('stroke-width',isActive?3:myC.length>0?1.8:1);g.appendChild(ci);
+    if(myC.length>0){
+      const bx=pos.x+R-6,by=pos.y-R+6;
+      const badge=document.createElementNS('http://www.w3.org/2000/svg','circle');
+      badge.setAttribute('cx',bx);badge.setAttribute('cy',by);badge.setAttribute('r',10);badge.setAttribute('fill',s.color);g.appendChild(badge);
+      const bnum=document.createElementNS('http://www.w3.org/2000/svg','text');
+      bnum.setAttribute('x',bx);bnum.setAttribute('y',by+4);bnum.setAttribute('text-anchor','middle');
+      bnum.setAttribute('font-size','9');bnum.setAttribute('fill','#fff');bnum.setAttribute('font-weight','700');bnum.textContent=myC.length;g.appendChild(bnum);
+    }
+    const em=document.createElementNS('http://www.w3.org/2000/svg','text');
+    em.setAttribute('x',pos.x);em.setAttribute('y',pos.y-2);em.setAttribute('text-anchor','middle');em.setAttribute('font-size','18');em.textContent=s.icon;g.appendChild(em);
+    const lbl=document.createElementNS('http://www.w3.org/2000/svg','text');
+    lbl.setAttribute('x',pos.x);lbl.setAttribute('y',pos.y+16);lbl.setAttribute('text-anchor','middle');
+    lbl.setAttribute('font-size','10');lbl.setAttribute('font-weight','700');lbl.setAttribute('fill',s.dark);lbl.textContent=s.name;g.appendChild(lbl);
+    svg.appendChild(g);
+  });
+}
+
+function clickSubj(id){
+  activeSubj=activeSubj===id?null:id;drawMap();
+  const hint=document.getElementById('map-hint');
+  const sideMap=document.getElementById('side-map');
+  if(!activeSubj){hint.textContent='教科をクリックするとつながりが浮かび上がります';sideMap.innerHTML='<p style="font-size:12px;color:var(--text3);padding:.5rem 0">教科をクリックして確認しよう</p>';return;}
+  const s=sb(id);
+  const myC=conns.filter(c=>c.a===id||c.b===id);
+  const myW=works.filter(w=>w.subject===id);
+  hint.textContent=`${s.icon} ${s.name} — つながり ${myC.length}件 ／ 記録 ${myW.length}件`;
+  let html=`<p style="font-size:13px;font-weight:700;margin-bottom:.5rem">${s.icon} ${s.name}</p>`;
+  if(myW.length>0){
+    const avg=Math.round(myW.reduce((a,w)=>a+(w.avgScore||0),0)/myW.length);
+    html+=`<div style="margin-bottom:.6rem"><div style="font-size:11px;color:var(--text2);margin-bottom:3px">平均スコア</div><div class="reach-bar-track"><div class="reach-bar-fill" style="width:${avg}%;background:${s.color}"></div></div><div style="font-size:10px;color:var(--text3);text-align:right;margin-top:2px">${avg}点</div></div>`;
+  }
+  if(myC.length>0){
+    html+=`<p style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:5px">つながり</p>`;
+    html+=myC.map(c=>{const other=sb(c.a===id?c.b:c.a);return `<div class="my-conn"><span class="cdot" style="background:${other?.color}"></span><span style="flex:1;color:var(--text)">${other?.icon} ${other?.name}</span><span style="color:var(--text3);margin-right:4px">${c.label}</span><span class="src-badge" style="background:${c.source==='ai'?'#EEEDFE':'#E8F7F2'};color:${c.source==='ai'?'#3C3489':'#085041'}">${c.source==='ai'?'AI':'自分'}</span></div>`;}).join('');
+  }else{
+    html+=`<p style="font-size:11px;color:var(--text3)">まだつながりがありません。学習を記録するとAIが提案します。</p>`;
+  }
+  sideMap.innerHTML=html;
+}
+
+async function doSubmit(){
+  const subject=document.getElementById('sel-subj').value;
+  const unit=document.getElementById('inp-unit').value.trim();
+  const body=document.getElementById('inp-body').value.trim();
+  if(!body){alert('学習したことを書いてください');return;}
+  const s=sb(subject);
+  const btn=document.getElementById('submit-btn');
+  btn.disabled=true;btn.textContent='AIが分析中…';
+  switchTab('feedback',document.querySelectorAll('.tab')[2]);
+  document.getElementById('fb-wrap').innerHTML=`<div style="padding:.75rem 0;font-size:12px;color:var(--text3)"><div class="dots"><span></span><span></span><span></span></div>　学習指導要領をもとに分析しています…</div>`;
+
+  const ms=(MILESTONES[subject]||[]).map((m,i)=>`${i+1}. ${m}`).join('\n');
+  const others=S.filter(x=>x.id!==subject).map(x=>x.id+':'+x.name).join(',');
+  const prompt=`あなたは小学校教員支援AIです。学習指導要領に基づき、子どもの学習記録を分析してください。
+教科:${s.name} 単元・テーマ:${unit||'未記入'} 記録内容:「${body}」
+単元の到達目標（参考）:\n${ms}
+以下のJSONのみ返してください（バッククォート・説明文不要）:
+{"overall":"全体フィードバック（子ども向け・2文）","good":"よかった点（1〜2点）","next":"次のステップ（1〜2点）","shido_comment":"学習指導要領との対応（先生向け・1文）","scores":{"知識・技能":数値0-100,"思考・判断・表現":数値0-100,"主体的な学び":数値0-100,"言語活動":数値0-100,"問題解決":数値0-100,"表現・創造":数値0-100},"milestone_reached":到達した目標の番号1〜4（未達なら0）,"milestone_comment":"到達度の一言（子ども向け）","conn_proposals":[{"subject":"教科ID","label":"5文字以内","reason":"子ども向け説明1文","strength":1から3},{"subject":"教科ID","label":"5文字以内","reason":"子ども向け説明1文","strength":1から3}]}
+conn_proposalsの教科IDは以下から2つ: ${others}`;
+
+  try{
+    const res=await fetch('/api/feedback',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({prompt})
+    });
+    const data=await res.json();
+    if(data.error){
+      document.getElementById('fb-wrap').innerHTML=`<div class="error-box"><strong>エラー：</strong>${data.error}</div>`;
+      btn.disabled=false;btn.textContent='AIにフィードバックをもらう ↗';return;
+    }
+    const raw=data.candidates?.[0]?.content?.parts?.[0]?.text||'';
+    const fb=JSON.parse(raw.replace(/```json|```/g,'').trim());
+    const avg=Math.round(Object.values(fb.scores||{}).reduce((a,b)=>a+b,0)/6);
+    const work={id:Date.now(),subject,unit:unit||'タイトルなし',body,fb,avgScore:avg,date:new Date().toLocaleDateString('ja-JP'),milestoneReached:fb.milestone_reached||0};
+    works.push(work);currentWork=work;
+    if(fb.conn_proposals?.length){proposals=[...proposals,...fb.conn_proposals.map(p=>({...p,subjectA:subject,pending:true}))];}
+    renderFB(fb,s,work);drawMap();
+  }catch(e){
+    document.getElementById('fb-wrap').innerHTML=`<div class="error-box"><strong>エラー：</strong>${e.message}</div>`;
+  }
+  btn.disabled=false;btn.textContent='AIにフィードバックをもらう ↗';
+}
+
+function renderFB(fb,s,work){
+  const rings=VIEWPTS.map(v=>{
+    const val=fb.scores?.[v]||0;const circ=2*Math.PI*16;const dash=Math.round((val/100)*circ*10)/10;
+    return `<div class="ring-item"><div class="ring-label">${v}</div><div class="ring-wrap"><svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="16" fill="none" stroke="#E4E2DE" stroke-width="5"/><circle cx="24" cy="24" r="16" fill="none" stroke="${s.color}" stroke-width="5" stroke-dasharray="${dash} ${Math.round(circ*10)/10}" stroke-linecap="round" transform="rotate(-90 24 24)"/></svg><div class="ring-num" style="color:${s.dark}">${val}</div></div></div>`;
+  }).join('');
+  const ms=MILESTONES[work.subject]||[];const reached=work.milestoneReached||0;
+  const msHTML=ms.map((m,i)=>`<div class="reach-milestone"><span class="ms-icon">${i<reached?'✅':'⬜'}</span><div class="ms-title">${m}</div></div>`).join('');
+  const pending=proposals.filter(p=>p.pending&&p.subjectA===work.subject);
+  const propHTML=pending.length?`<p class="section-title" style="margin-top:.75rem">AIが提案するつながり</p>`+pending.map(pr=>{
+    const rs=sb(pr.subject);const stars='★'.repeat(pr.strength||1)+'☆'.repeat(3-(pr.strength||1));const ri=proposals.indexOf(pr);
+    return `<div class="conn-proposal"><div class="conn-row"><span style="font-size:15px">${s.icon}</span><span style="font-size:12px;color:var(--text3)">↔</span><span style="font-size:15px">${rs?.icon||''}</span><span style="font-size:12px;font-weight:700;flex:1">${rs?.name||pr.subject}</span><span style="font-size:11px;color:var(--text3)">${stars}</span></div><div style="font-size:11px;font-weight:700;margin-bottom:3px">${pr.label}</div><div class="conn-reason">${pr.reason}</div><div class="conn-actions"><button class="btn-sm accept" onclick="acceptConn('${work.subject}','${pr.subject}','${pr.label}',${ri})">承認する</button><button class="btn-sm" onclick="rejectConn(${ri})">却下</button></div></div>`;
+  }).join(''):'';
+  document.getElementById('fb-wrap').innerHTML=`
+<div class="card"><div class="card-head" style="background:${s.light}"><span style="font-size:16px">${s.icon}</span><h3>${s.name}${work.unit?' — '+work.unit:''}</h3><span class="badge" style="background:${s.color};color:#fff">${work.avgScore}点</span></div>
+<div class="card-body"><p style="margin-bottom:.5rem">${fb.overall||''}</p><p style="font-size:11px;font-weight:700;color:var(--text);margin-bottom:3px">✨ よかったこと</p><p style="margin-bottom:.5rem">${fb.good||''}</p><p style="font-size:11px;font-weight:700;color:var(--text);margin-bottom:3px">🚀 次のステップ</p><p style="margin-bottom:.4rem">${fb.next||''}</p>${fb.shido_comment?`<div style="margin-top:.5rem;padding:.4rem .6rem;background:var(--bg);border-radius:var(--radius-sm);font-size:10px;color:var(--text3)">📋 ${fb.shido_comment}</div>`:''}</div></div>
+<p class="section-title">6つの観点</p><div class="ring-grid">${rings}</div>
+<p class="section-title">単元の到達目標</p>
+<div class="card"><div class="card-head"><h3>${fb.milestone_comment||''}</h3><span class="badge" style="background:${s.light};color:${s.dark}">${reached}/${ms.length} 達成</span></div><div class="card-body" style="padding:.5rem .875rem">${msHTML}</div></div>
+${propHTML}`;
+}
+
+function acceptConn(a,b,label,i){
+  if(!conns.some(c=>(c.a===a&&c.b===b)||(c.a===b&&c.b===a)))conns.push({a,b,label,source:'ai'});
+  if(proposals[i])proposals[i].pending=false;
+  if(currentWork)renderFB(currentWork.fb,sb(currentWork.subject),currentWork);drawMap();
+}
+function rejectConn(i){if(proposals[i])proposals[i].pending=false;if(currentWork)renderFB(currentWork.fb,sb(currentWork.subject),currentWork);}
+
+function renderReach(){
+  if(works.length===0){document.getElementById('reach-wrap').innerHTML='<p style="font-size:12px;color:var(--text3)">記録が増えると到達度が表示されます</p>';return;}
+  const subjects=[...new Set(works.map(w=>w.subject))];let html='';
+  subjects.forEach(id=>{
+    const s=sb(id);const myW=works.filter(w=>w.subject===id);
+    const reached=myW[myW.length-1]?.milestoneReached||0;const ms=MILESTONES[id]||[];
+    const pct=Math.round(reached/ms.length*100);const avgScore=Math.round(myW.reduce((a,w)=>a+(w.avgScore||0),0)/myW.length);
+    html+=`<div class="card"><div class="card-head" style="background:${s.light}"><span style="font-size:14px">${s.icon}</span><h3>${s.name}</h3><span class="badge" style="background:${s.color};color:#fff">${pct}%</span></div><div class="card-body">
+<div class="reach-bar-wrap"><div class="reach-bar-label"><span>単元到達度</span><span>${reached}/${ms.length}</span></div><div class="reach-bar-track"><div class="reach-bar-fill" style="width:${pct}%;background:${s.color}"></div></div></div>
+<div class="reach-bar-wrap"><div class="reach-bar-label"><span>平均スコア（${myW.length}回）</span><span>${avgScore}点</span></div><div class="reach-bar-track"><div class="reach-bar-fill" style="width:${avgScore}%;background:${s.color}"></div></div></div>
+${ms.map((m,i)=>`<div class="reach-milestone"><span class="ms-icon">${i<reached?'✅':'⬜'}</span><div class="ms-title">${m}</div></div>`).join('')}</div></div>`;
+  });
+  document.getElementById('reach-wrap').innerHTML=html;
+}
+
+function renderHistory(){
+  if(works.length===0){document.getElementById('history-wrap').innerHTML='<p style="font-size:12px;color:var(--text3)">まだ記録がありません</p>';return;}
+  document.getElementById('history-wrap').innerHTML=works.slice().reverse().map(w=>{
+    const s=sb(w.subject);
+    return `<div class="history-item" onclick="showWorkFB(${w.id})"><div class="hi-icon">${s?.icon||'📄'}</div><div class="hi-body"><div class="hi-title">${w.unit}</div><div class="hi-meta">${s?.name||''} · ${w.date}</div></div><div class="hi-score" style="color:${s?.dark||'inherit'}">${w.avgScore}点</div></div>`;
+  }).join('');
+}
+
+function showWorkFB(id){
+  const w=works.find(x=>x.id===id);if(!w)return;
+  currentWork=w;switchTab('feedback',document.querySelectorAll('.tab')[2]);renderFB(w.fb,sb(w.subject),w);
+}
+
+function renderConns(){
+  const pw=document.getElementById('conn-proposals-wrap');
+  const pending=proposals.filter(p=>p.pending);
+  pw.innerHTML=pending.length?pending.map(pr=>{
+    const sa=sb(pr.subjectA),rs=sb(pr.subject);const ri=proposals.indexOf(pr);
+    return `<div class="conn-proposal"><div class="conn-row"><span style="font-size:14px">${sa?.icon}</span><span style="font-size:12px;color:var(--text3)">↔</span><span style="font-size:14px">${rs?.icon}</span><span style="font-size:12px;font-weight:700;flex:1">${sa?.name} ↔ ${rs?.name}</span></div><div class="conn-reason">${pr.reason}</div><div class="conn-actions"><button class="btn-sm accept" onclick="acceptConn('${pr.subjectA}','${pr.subject}','${pr.label}',${ri})">承認する</button><button class="btn-sm" onclick="rejectConn(${ri});renderConns()">却下</button></div></div>`;
+  }).join(''):'<p style="font-size:11px;color:var(--text3)">承認待ちの提案はありません</p>';
+  const cw=document.getElementById('conn-list-wrap');
+  cw.innerHTML=conns.length?conns.map((c,i)=>{
+    const sa=sb(c.a),sb2=sb(c.b);
+    return `<div class="my-conn"><span class="cdot" style="background:${sa?.color}"></span><span style="flex:1;color:var(--text)">${sa?.icon} ${sa?.name} ↔ ${sb2?.icon} ${sb2?.name}</span><span style="color:var(--text3);padding-right:4px;font-size:10px">${c.label}</span><span class="src-badge" style="background:${c.source==='ai'?'#EEEDFE':'#E8F7F2'};color:${c.source==='ai'?'#3C3489':'#085041'};margin-right:4px">${c.source==='ai'?'AI':'自分'}</span><button onclick="removeConn(${i})" style="font-size:11px;border:none;background:transparent;cursor:pointer;color:var(--text3)">✕</button></div>`;
+  }).join(''):'<p style="font-size:11px;color:var(--text3)">まだつながりがありません</p>';
+}
+
+function removeConn(i){conns.splice(i,1);drawMap();renderConns();}
+function addManual(){
+  const a=document.getElementById('man-a').value;const b=document.getElementById('man-b').value;
+  const lbl=document.getElementById('man-lbl').value.trim();
+  if(a===b){alert('別々の教科を選んでください');return;}
+  if(!lbl){alert('つながりの理由を書いてください');return;}
+  if(conns.some(c=>(c.a===a&&c.b===b)||(c.a===b&&c.b===a))){alert('すでに同じつながりがあります');return;}
+  conns.push({a,b,label:lbl,source:'manual'});document.getElementById('man-lbl').value='';
+  drawMap();renderConns();
+}
+
+initSelects();drawMap();
+</script>
+</body>
+</html>
