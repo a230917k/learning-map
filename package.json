@@ -1,0 +1,9 @@
+{
+  "name": "learning-map",
+  "version": "1.0.0",
+  "description": "教科横断学習マップ",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  }
+}
